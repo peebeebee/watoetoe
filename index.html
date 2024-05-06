@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="nl">
+  <head>
+    <title>Watoetoe</title>
+    <meta charset="utf-8">
+    <style>
+      body {
+        padding: 0;
+        margin: 0;
+        font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+      }
+    </style>
+    <script>
+      class WttApp extends HTMLElement {
+        constructor() {
+          super();
+          this.attachShadow({mode: 'open'});
+          this.shadowRoot.innerHTML = `
+            <style>
+              :host {
+                display: grid;
+                grid-template-rows: 1fr;
+                grid-template-columns: 1fr;
+                grid-template-areas: 
+                  "carousel"
+                  "controls";
+                height: 100dvh;
+                background-color: yellow;
+              }
+
+              wtt-carousel {
+                grid-area: carousel;
+                background-color: red;
+              }
+
+              wtt-controls {
+                grid-area: controls;
+                background-color: green;
+              }
+            </style>
+            <wtt-carousel>
+              <slot></slot>
+            </wtt-carousel>
+          `;
+        }
+
+        connectedCallback() {
+          console.log('cc-app');
+
+          const carousel = this.shadowRoot.querySelector('wtt-carousel');
+          const controls = this.shadowRoot.querySelector('wtt-controls');
+          
+          // controls.addEventListener('choose', () => {
+          //   carousel.spin();
+          // });
+
+          carousel.addEventlistener('scroll', () => {
+            console.log('scroll');
+          });
+
+          // carousel.addEventListener('stop', () => {
+
+          // });
+        }
+      }
+      
+
+      class WttCarousel extends HTMLElement {
+        constructor() {
+          super();
+          this.attachShadow({mode: 'open'});
+          this.shadowRoot.innerHTML = `
+            <style>
+              :host {
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+                
+              }
+
+              ::slotted(wtt-idea) {
+                flex: 0 0 100%;
+              } 
+            </style>
+            <slot></slot>
+          `;
+          this.addEventListener('click', () => {
+            console.log('click');
+            this.spin();
+          });
+        }
+
+        // When a scroll event is triggered by a user, 
+        // hijack the normal scroll, and do a custom looped scroll animation,
+        // and then stop at a random item
+
+        async wait(ms) {
+          return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        async spin() {
+          console.log('spin');
+
+          const isPlaying = true;
+
+          const singleSpin = async (parts) => {
+            return new Promise((resolve, reject) => {
+              console.log('singleSpin!')
+              const height = this.scrollHeight - this.clientHeight;
+              const step = height / parts;
+              let i = 0;
+              const scrollStep = () => {
+                const scrollDistance = step * i;
+                this.scrollTo({top: scrollDistance});
+                if(scrollDistance < height) {
+                  requestAnimationFrame(scrollStep);
+                  i = i + 1;
+                } else {
+                  resolve();
+                }
+              };
+              requestAnimationFrame(scrollStep);
+            })
+          };
+          await singleSpin(4.5);
+          await singleSpin(4.0);
+          await singleSpin(3.5);
+          await singleSpin(3.0);
+          await singleSpin(3.5);
+          await singleSpin(4.0);
+          await singleSpin(4.5);
+          await singleSpin(5.0);
+          await singleSpin(10.0);
+        }
+
+        async spin3() {
+          console.log('spin');
+          const onScrollEnd = () => {
+            console.log('scrollend');
+          }
+
+          const scrollToAll = async (waitTime) => {
+            const slot = this.shadowRoot.querySelector('slot');
+            const items = slot.assignedElements({ flatten: true });
+
+            for(const item of items) {
+              console.log('h');
+              item.scrollIntoView({block: 'start', inline: 'start'});
+              await this.wait(waitTime);
+            }
+          }
+
+          const returnToStart = () => {
+            this.scrollTo({top: 0});
+          }
+
+          const spinEventHandler = () => {
+            
+          
+          }
+
+          const doSpin = () => {
+
+          }
+
+          this.addEventListener("scrollend", onScrollEnd);
+          await scrollToAll(150);
+          await scrollToAll(100);
+          await scrollToAll(90);
+          await scrollToAll(70);
+          await scrollToAll(50);
+          await scrollToAll(30);
+          await scrollToAll(10);
+          await scrollToAll(30);
+          await scrollToAll(50);
+          await scrollToAll(70);
+          await scrollToAll(100);
+          await scrollToAll(150);
+          await scrollToAll(250);
+        }
+
+        spin1() {
+          const LOOPS = 20;
+          let i = 0;
+          const scroll = (event) => {
+            console.log('scrollend');
+            if(i < LOOPS) {
+              console.log('scrolling');
+              // this.scrollLeft = 0;
+              this.scrollTo({left: 0, behavior: 'smooth'});
+              this.scrollTo({left: this.scrollWidth, behavior: 'smooth'});
+              i++;
+            } else {
+              console.log('ENDING');
+              i = 0;
+              this.removeEventListener("scrollend", scroll);
+            }
+          };
+
+          console.log(this.offsetWidth);
+          this.scrollTo({left: this.scrollWidth, behavior: 'smooth'});
+          this.addEventListener("scrollend", scroll);
+        }
+
+
+        // scroll 20 loops and end on random item
+        spin2() {
+          const slot = this.shadowRoot.querySelector('slot');
+          const carousel = this;
+          const items = slot.assignedElements({ flatten: true });
+          const randomIndex = Math.floor(Math.random() * items.length);
+          const randomItem = items[randomIndex];
+          const LOOPS = 20;
+
+
+          let currentLoop = 0;
+          const totalWidth = items.reduce((acc, item) => acc + item.offsetWidth, 0);
+
+
+          const scrollOneLoop = () => {
+    let scrolledDistance = 0;
+    const scrollStep = () => {
+      if (scrolledDistance < totalWidth) {
+        console.log('scrolling');
+        const randomScrollAmount = Math.random() * 5;
+        // Scroll by a fraction of the total width to simulate continuous movement
+        carousel.scrollBy({ left: totalWidth / randomScrollAmount, behavior: 'instant' });
+        scrolledDistance += totalWidth / randomScrollAmount;
+        requestAnimationFrame(scrollStep);
+      } else if (currentLoop < LOOPS) {
+        console.log('resetting');
+        // Reset scroll position to start for the next loop
+        carousel.scrollTo({ left: 0, behavior: 'instant' });
+        currentLoop++;
+        setTimeout(scrollOneLoop, 1000); // Short pause before next loop
+      } else {
+        console
+        // Final scroll to the random item
+        carousel.scrollTo({
+          left: randomItem.offsetLeft,
+          behavior: 'smooth'
+        });
+      }
+    };
+    scrollStep();
+  };
+
+  scrollOneLoop();
+        }
+      }
+      
+
+      class WttIdea extends HTMLElement {
+        constructor() {
+          super();
+          this.attachShadow({mode: 'open'});
+        }
+
+        connectedCallback() {
+          this.shadowRoot.innerHTML = `
+            <style>
+              :host {
+                display: block;
+                padding: 10px;
+              }
+
+              .idea {
+                color: grey;
+                mix-blend-mode: difference;
+              }
+            </style>
+            <div class="idea">
+              <h2>${this.getAttribute('name')}</h2>
+              <p>${this.getAttribute('description')}</p>
+              <p>${this.getAttribute('weather')}</p>
+              <p>${this.getAttribute('duration')}</p>
+              <p>${this.getAttribute('location')}</p>
+            </div>
+          `;
+        }
+      }
+      
+
+      class WttControls extends HTMLElement {
+        constructor() {
+          super();
+          this.attachShadow({mode: 'open'});
+        }
+
+        connectedCallback() {
+          console.log('cc-controls');
+          this.shadowRoot.innerHTML = `
+            <style>
+              .controls {
+                display: flex;
+                justify-content: center;
+                align-items: stretch;
+                height: 100%;
+              }
+
+              button {
+                all: unset;
+                text-align: center;
+                background-color: lightblue;
+                flex: 1;
+              }
+            </style>
+            <div class="controls">
+              <button class="btn-choose">WATOETOE⁉️</button>
+            </div>
+          `;
+          this.shadowRoot.querySelector('.btn-choose').addEventListener('click', () => {
+            this.dispatchEvent(new CustomEvent('choose'));
+          });
+        }  
+      }
+    
+
+      customElements.define("wtt-app", WttApp);
+      customElements.define("wtt-carousel", WttCarousel);
+      customElements.define("wtt-idea", WttIdea);
+      customElements.define("wtt-controls", WttControls);
+
+    </script>
+  </head>
+  <body>
+    <wtt-app>
+      <wtt-idea
+        name="Idee 1"
+        description="Dit is een beschrijving van idee 1"
+        weather="🌞🌧️"
+        duration="1h-2h"
+        location="Oude Kuringerbaan 1, 3500 Hasselt"
+        style="background-color: lightseagreen;"
+      ></wtt-idea>
+      <wtt-idea
+        name="Idee 2"
+        description="Dit is een beschrijving van idee 2"
+        weather="🌞🌧️🌥️"
+        duration="2h-4h"
+        location="Oude Kuringerbaan 1, 3500 Hasselt"
+        style="background-color: steelblue;"
+      ></wtt-idea>
+      <wtt-idea
+        name="Idee 3"
+        description="Dit is een beschrijving van idee 3"
+        weather="🌞🌧️🌥️"
+        duration="4h-8h"
+        location="Oude Kuringerbaan 1, 3500 Hasselt"
+        style="background-color: lightcoral;"
+      ></wtt-idea>
+      <wtt-idea
+        name="Idee 4"
+        description="Dit is een beschrijving van idee 4"
+        weather="🌞🌧️"
+        duration="30m-1h"
+        location="Oude Kuringerbaan 1, 3500 Hasselt"
+        style="background-color: lavender;"
+      ></wtt-idea>
+      <wtt-idea
+        name="Idee 5"
+        description="Dit is een beschrijving van idee 5"
+        weather="🌧️🌥️"
+        duration="1h-2h"
+        location="Oude Kuringerbaan 1, 3500 Hasselt"
+        style="background-color: peachpuff"
+      ></wtt-idea>
+    </wtt-app>
+  </body>
+</html>
