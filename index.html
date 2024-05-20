@@ -47,16 +47,27 @@
 
               ::slotted(wtt-idea) {
                 grid-area: app;
-                display: none;
                 height: 50vh;
                 align-self: flex-end;
                 z-index: 1;
+                transition: 
+                  opacity 250ms cubic-bezier(0.55, 0.06, 0.68, 0.19), 
+                  translate 500ms cubic-bezier(0.55, 0.06, 0.68, 0.19),
+                  scale 300ms cubic-bezier(0.55, 0.06, 0.68, 0.19);
+                opacity: 0;
+                translate: 0 -100%;
+                scale: 0.2;
               }
 
               ::slotted(wtt-idea[selected]) {
-                display: block;
+                transition: 
+                  opacity 50ms cubic-bezier(0.55, 0.06, 0.68, 0.19), 
+                  translate 100ms cubic-bezier(0.55, 0.06, 0.68, 0.19),
+                  scale 100ms cubic-bezier(0.55, 0.06, 0.68, 0.19);
+                opacity: 1;
+                translate: 0;
+                scale: 1;
               }
-
 
               wtt-wheel {
                 grid-area: app;
@@ -270,14 +281,6 @@
                 overflow: hidden;
               }
 
-              :host::slotted(*) {
-                display: none; /* Don't render the ideas */
-              }
-
-              ::slotted(*) {
-                display: none;
-              }
-
               :host svg {
                 translate: 0 -50%;
                 scale: 2;
@@ -309,6 +312,7 @@
 
         /** Spins the wheel to a random item with a random amount of turns */
         spin() {
+          this.itemChosen?.removeAttribute('selected');
           const randomTurnsUntilFullRotation = parseInt(this.turns + Math.random() * 10);
           const randomItem = this.items[Math.floor(Math.random() * this.items.length)];
           const turnUntilItem = 1 - (1 / this.items.length * (this.items.indexOf(randomItem)));
@@ -337,7 +341,6 @@
         duration="1h-2h"
         location="Oude Kuringerbaan 1, 3500 Hasselt"
         style="background-color: lightseagreen;"
-        selected
       ></wtt-idea>
       <wtt-idea
         name="Idee 2"
