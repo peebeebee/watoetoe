@@ -48,6 +48,9 @@
               ::slotted(wtt-idea) {
                 grid-area: app;
                 display: none;
+                height: 50vh;
+                align-self: flex-end;
+                z-index: 1;
               }
 
               ::slotted(wtt-idea[selected]) {
@@ -80,7 +83,6 @@
 
           this.wheel.addEventListener('wheelstop', (event) => {
             console.log('wheelstop!', event.detail);
-            // alert(`Je gaat ${event.detail.getAttribute('name')} doen!`);
           });
         }
       }
@@ -99,16 +101,40 @@
               }
 
               .idea {
+                text-align: center;
+                font-size: 1.15rem;
+              }
+              
+              .blend {
                 color: grey;
                 mix-blend-mode: difference;
               }
+
+              .title {
+                font-size: 2rem;
+                text-transform: uppercase;
+                margin: 0;
+              }
+
+              .weather {
+                font-size: 4rem;
+                margin: 0;
+              }
             </style>
             <div class="idea">
-              <h2>${this.getAttribute('name')}</h2>
-              <p>${this.getAttribute('description')}</p>
-              <p>${this.getAttribute('weather')}</p>
-              <p>${this.getAttribute('duration')}</p>
-              <p>${this.getAttribute('location')}</p>
+              <h2 class="title blend">${this.getAttribute('name')}</h2>
+              <p>
+                <span class="blend">${this.getAttribute('description')}</span>
+              </p>
+              <p class="weather">
+                ${this.getAttribute('weather')}
+              </p>
+              <p class="duration">
+                🕗 <span class="blend">${this.getAttribute('duration')}</span>
+              </p>
+              <p class="location">
+                📍 <span class="blend"> ${this.getAttribute('location')}</span>
+              </p>
             </div>
           `;
         }
@@ -161,10 +187,8 @@
           const anglePerSegment = 2 * Math.PI / numItems;
           const isEven = numItems % 2 === 0;
 
-          const angleDown = 3 * Math.PI / 2
-          const startAngleOffset = (isEven)
-            ?  angleDown - anglePerSegment / 2 
-            :  angleDown;
+          const angleDown = Math.PI / 2
+          const startAngleOffset = angleDown - anglePerSegment / 2 
 
           const startAngle = startAngleOffset + (i * anglePerSegment);
           const endAngle = startAngle + anglePerSegment;
@@ -254,10 +278,6 @@
                 display: none;
               }
 
-              :host::slotted(wtt-idea) {
-                grid-area: app;
-              }
-
               :host svg {
                 translate: 0 -50%;
                 scale: 2;
@@ -291,14 +311,7 @@
         spin() {
           const randomTurnsUntilFullRotation = parseInt(this.turns + Math.random() * 10);
           const randomItem = this.items[Math.floor(Math.random() * this.items.length)];
-          const turnUntilItem = 1 / this.items.length * this.items.indexOf(randomItem);
-          console.log('SPINNING', {
-            itemsLength: this.items.length,
-            indexOf: this.items.indexOf(randomItem),
-            randomTurnsUntilFullRotation, 
-            randomItem, 
-            turnUntilItem
-          });
+          const turnUntilItem = 1 - (1 / this.items.length * (this.items.indexOf(randomItem)));
           this.itemChosen = randomItem;
           this.turns = randomTurnsUntilFullRotation + turnUntilItem;
         }
@@ -324,6 +337,7 @@
         duration="1h-2h"
         location="Oude Kuringerbaan 1, 3500 Hasselt"
         style="background-color: lightseagreen;"
+        selected
       ></wtt-idea>
       <wtt-idea
         name="Idee 2"
@@ -357,6 +371,14 @@
         location="Oude Kuringerbaan 1, 3500 Hasselt"
         style="background-color: peachpuff"
       ></wtt-idea>
+      <!-- <wtt-idea
+        name="Idee 6"
+        description="Dit is een beschrijving van idee 5"
+        weather="🌧️🌥️"
+        duration="1h-2h"
+        location="Oude Kuringerbaan 1, 3500 Hasselt"
+        style="background-color: red"
+      ></wtt-idea> -->
     </wtt-app>
   </body>
 </html>
