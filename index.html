@@ -4,7 +4,14 @@
     <title>Watoetoe</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <style>
+      html, body {
+        height: 100dvh;
+        overflow: hidden;
+      }
+      
       body {
         padding: 0;
         margin: 0;
@@ -13,6 +20,17 @@
     </style>
     <script>
       class HTMLAppElement extends HTMLElement {
+
+        /** @returns {HTMLIdeaElement[]} */
+        get items() {
+          return this.shadowRoot.querySelector('slot').assignedElements({ flatten: true });
+        }
+
+        /** @returns {HTMLWheelElement} */
+        get wheel() {
+          return this.shadowRoot.querySelector('wtt-wheel');
+        }
+
         constructor() {
           super();
           this.attachShadow({mode: 'open'});
@@ -22,62 +40,48 @@
                 display: grid;
                 grid-template-rows: 1fr;
                 grid-template-columns: 1fr;
-                grid-template-areas: 
-                  "carousel"
-                  "controls";
+                grid-template-areas: "app";
                 height: 100dvh;
                 background-color: #FFF5F5;
               }
 
-              wtt-carousel {
-                grid-area: carousel;
-                background-color: red;
+              ::slotted(wtt-idea) {
+                grid-area: app;
+                display: none;
               }
 
-              wtt-controls {
-                grid-area: controls;
-                background-color: green;
+              ::slotted(wtt-idea[selected]) {
+                display: block;
               }
+
 
               wtt-wheel {
-                grid-column: 1;
-                grid-row: 1;
+                grid-area: app;
               }
 
               h1 {
-                grid-column: 1;
-                grid-row: 1;
+                grid-area: app;
                 align-self: end;
                 justify-self: center;
               }
             </style>
+            
             <wtt-wheel>
               <slot></slot>
             </wtt-wheel>
             <h1>WATOETOE?!</h1>
           `;
-
-          // <wtt-carousel>
-          //   <slot></slot>
-          // </wtt-carousel>
-
         }
 
         connectedCallback() {
-          const carousel = this.shadowRoot.querySelector('wtt-carousel');
-          const controls = this.shadowRoot.querySelector('wtt-controls');
-          
-          // controls.addEventListener('choose', () => {
-          //   carousel.spin();
-          // });
+          this.addEventListener('click', () => {
+            this.wheel.spin();
+          });
 
-          // carousel.addEventlistener('scroll', () => {
-          //   console.log('scroll');
-          // });
-
-          // carousel.addEventListener('stop', () => {
-
-          // });
+          this.wheel.addEventListener('wheelstop', (event) => {
+            console.log('wheelstop!', event.detail);
+            // alert(`Je gaat ${event.detail.getAttribute('name')} doen!`);
+          });
         }
       }
       
@@ -91,7 +95,6 @@
           this.shadowRoot.innerHTML = `
             <style>
               :host {
-                display: block;
                 padding: 10px;
               }
 
@@ -112,15 +115,15 @@
       }
       
       class SvgWheelRenderer {
-        items = [{
+        segments = [{
           fill: 'red', 
           stroke: 'blue'
         }];
 
         radius = 50;
 
-        constructor(items) {
-          this.items = items;
+        constructor(segments) {
+          this.segments = segments;
         }
 
         /**
@@ -132,10 +135,11 @@
           const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
           svg.setAttribute('viewBox', `0 0 ${size} ${size}`);
           
-          for (const item of this.items) {
+          for (const item of this.segments) {
             const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             this.#setPathData(path, item);
             this.#setPathColors(path, item);
+            this.#setPathName(path, item);
             svg.appendChild(path);
           }
 
@@ -147,13 +151,13 @@
          * @param {SvgPathElement} path The path element to set the data on
          * @param {HTMLIdeaElement} the element create the path for
          */
-         #setPathData(path, item) {
+         #setPathData(path, segment) {
           const radius = this.radius - 1;
-          const i = this.items.indexOf(item);
+          const i = this.segments.indexOf(segment);
           const centerX = this.radius;
           const centerY = this.radius;
 
-          const numItems = this.items.length;
+          const numItems = this.segments.length;
           const anglePerSegment = 2 * Math.PI / numItems;
           const isEven = numItems % 2 === 0;
 
@@ -187,79 +191,128 @@
          * @param {SvgPathElement} path The path element to set the colors on
          * @param {HTMLIdeaElement} the element to get the colors from
          */
-        #setPathColors(path, item) {
-          const i = this.items.indexOf(item);
-          path.setAttribute('fill', item.fill);
-          path.setAttribute('stroke', item.stroke);
+        #setPathColors(path, segment) {
+          const i = this.segments.indexOf(segment);
+          path.setAttribute('fill', segment.fill);
+          path.setAttribute('stroke', segment.stroke);
+        }
+
+        #setPathName(path, segment) {
+          const i = this.segments.indexOf(segment);
+          path.setAttribute('name', segment.fill);
+          path.setAttribute('stroke', segment.stroke);
         }
       }
 
       class HTMLWheelElement extends HTMLElement {
+
+        speed = 2000;
+
+        itemChosen = null;
+
+        /** @returns {SVGSVGElement} */
+        get svg() {
+          return this.shadowRoot.querySelector('svg');
+        }
+
+        /** @returns {HTMLIdeaElement[]} */
+        get items() {
+          return this.shadowRoot.querySelector('slot').assignedElements({ flatten: true });
+        }
+
+        /** @returns {HTMLSlotElement} */
+        get slot() {
+          return this.shadowRoot.querySelector('slot');
+        }
+
+        set turns(turns) {
+          this.svg.style.setProperty('--turns', turns);
+        }
+
+        get turns() {
+          return parseFloat(this.svg.style.getPropertyValue('--turns'));
+        }
+
         constructor() {
           super();
           this.attachShadow({mode: 'open'});
           this.shadowRoot.innerHTML = `
             <style>
               :host {
-                display: block;
+                display: grid;
+                grid-template-rows: 1fr;
+                grid-template-columns: 1fr;
+                grid-template-areas: "app";
                 overflow: hidden;
               }
 
-              ::slotted(*) {
+              :host::slotted(*) {
                 display: none; /* Don't render the ideas */
               }
 
-              svg {
-                /* height: 100%; */
-                /* width: 100%; */
-                
-                translate: 0 -50%;
-                scale: 2;
-                
-                rotate: calc(1 / var(--num-children, 1)  * 1turn);
+              ::slotted(*) {
+                display: none;
               }
 
-              @keyframes spin {
-                from {rotate: 0turn;}
-                to {rotate: 2.2turn;}
+              :host::slotted(wtt-idea) {
+                grid-area: app;
+              }
+
+              :host svg {
+                translate: 0 -50%;
+                scale: 2;
+                grid-area: app;
+                
+                rotate: calc(var(--turns) * 1turn);
+                transition: rotate ${this.speed}ms cubic-bezier(0.25, 0.1, 0.25, 1);
               }
             </style>
           ` + 
           `<slot></slot>` +
           `<svg></svg>`;
 
-          this.shadowRoot.querySelector('slot').addEventListener('slotchange', (e) => {
-            const slot = this.shadowRoot.querySelector('slot');
-            const items = slot.assignedElements({ flatten: true });
-            const wheel = new SvgWheelRenderer(items.map(item => ({
-              fill: item.style.backgroundColor,
-              stroke: 'transparent'
-            })));
-            this.shadowRoot.querySelector('svg').replaceWith(wheel.render());
-            this.shadowRoot.querySelector('svg').style.setProperty('--num-children', items.length);
+          this.slot.addEventListener('slotchange', () => {
+            this.#initWheel();
           });
         }
 
-        connectedCallback() {
-          this.addEventListener('click', () => {
-            this.spin();
-          });
+        #initWheel() {
+          const wheel = new SvgWheelRenderer(this.items.map(item => ({
+            fill: item.style.backgroundColor,
+            stroke: 'transparent'
+          })));
+          this.svg.replaceWith(wheel.render());
+          this.svg.addEventListener('transitionend', () => this.#onWheelStop());
+          this.turns = 0;
+          this.itemChosen = null;
         }
 
+        /** Spins the wheel to a random item with a random amount of turns */
         spin() {
-          const time = 2000;
-          const svg = this.shadowRoot.querySelector('svg');
-          svg.style.animation = ``;
-          requestAnimationFrame(() => {
-            svg.style.animation = `spin ${time}ms ease-in-out forwards`;
+          const randomTurnsUntilFullRotation = parseInt(this.turns + Math.random() * 10);
+          const randomItem = this.items[Math.floor(Math.random() * this.items.length)];
+          const turnUntilItem = 1 / this.items.length * this.items.indexOf(randomItem);
+          console.log('SPINNING', {
+            itemsLength: this.items.length,
+            indexOf: this.items.indexOf(randomItem),
+            randomTurnsUntilFullRotation, 
+            randomItem, 
+            turnUntilItem
           });
+          this.itemChosen = randomItem;
+          this.turns = randomTurnsUntilFullRotation + turnUntilItem;
+        }
+        
+        #onWheelStop() {
+          this.items.forEach(item => item.removeAttribute('selected'));
+          this.itemChosen.setAttribute('selected', '');
+          this.dispatchEvent(new CustomEvent('wheelstop', { detail: this.itemChosen }));
         }
       }
 
-      customElements.define("wtt-app", HTMLAppElement);
       customElements.define("wtt-idea", HTMLIdeaElement);
       customElements.define("wtt-wheel", HTMLWheelElement);
-
+      customElements.define("wtt-app", HTMLAppElement);
     </script>
   </head>
   <body>
@@ -307,3 +360,9 @@
     </wtt-app>
   </body>
 </html>
+<!-- 
+  TODO: 
+  - Sound effects
+  - Make the wheel spin by touch and scrolling
+  - Make the scroll or touch speed affect the spinning speed
+-->
